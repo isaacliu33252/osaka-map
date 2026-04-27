@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>大阪地圖</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'PingFang TC', 'Microsoft JhengHei', sans-serif; }
+        #map { width: 100vw; height: 100vh; }
+        .legend { background: white; padding: 10px 15px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.15); font-size: 14px; }
+        .legend h4 { margin-bottom: 8px; }
+        .legend-item { display: flex; align-items: center; margin: 4px 0; }
+        .legend-dot { width: 12px; height: 12px; border-radius: 50%; margin-right: 8px; }
+        .header {
+            position: absolute;
+            top: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: white;
+            padding: 8px 20px;
+            border-radius: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.15);
+            z-index: 1000;
+            font-size: 16px;
+            font-weight: bold;
+            color: #e74c3c;
+        }
+    </style>
+</head>
+<body>
+<div class="header">🇯🇵 大阪地圖</div>
+<div id="map"></div>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+// 預設：道頓堀
+const CENTER = [34.6687, 135.5013];
+const DEFAULT_ZOOM = 14;
+
+// 分類
+const CATEGORIES = {
+    landmark: { color: '#e74c3c', label: '景點' },
+    food: { color: '#f39c12', label: '美食' },
+    transport: { color: '#3498db', label: '交通' },
+    shopping: { color: '#9b59b6', label: '購物' },
+    nature: { color: '#27ae60', label: '自然' }
+};
+
+// 地點資料（名稱, 緯度, 經度, 分類, 描述）
+const locations = [
+    // 景點
+    ['道頓堀', 34.6687, 135.5013, 'landmark', '大阪最熱鬧的街道'],
+    ['心齋橋', 34.6738, 135.5013, 'landmark', '流行服飾購物街'],
+    ['大阪城', 34.6873, 135.5262, 'landmark', '豐臣秀吉建造的城堡'],
+    ['通天閣', 34.6529, 135.5063, 'landmark', '新世界地標'],
+    ['環球影城 USJ', 34.6654, 135.4324, 'landmark', '日本環球影城'],
+    ['海遊館', 34.6453, 135.4259, 'landmark', '世界最大水族館之一'],
+    ['天保山', 34.6453, 135.4259, 'landmark', '海遊館、摩天輪所在'],
+
+    // 美食
+    ['黑門市場', 34.6675, 135.4948, 'food', '大阪人的廚房'],
+    ['鶴橋風月', 34.6699, 135.5035, 'food', '大阪燒名店'],
+    ['螃蟹道樂', 34.6689, 135.5020, 'food', '帝王蟹專門店'],
+    ['章魚燒たこ焼き', 34.6687, 135.5013, 'food', '道頓堀街頭小吃'],
+
+    // 交通
+    ['JR大阪站', 34.7054, 135.4980, 'transport', 'JR鐵路樞紐'],
+    ['JR難波站', 34.6688, 135.5025, 'transport', '南海電鐵、市營地下鐵'],
+    ['大阪地下鐵', 34.7054, 135.4980, 'transport', '地下鐵主要樞紐'],
+
+    // 購物
+    ['梅田藍天大廈', 34.7054, 135.4980, 'shopping', '空中花園觀景台'],
+    ['臨空城 Premium Outlets', 34.4325, 135.3143, 'shopping', '大型折扣商場'],
+    ['阿倍野 Harukas', 34.6467, 135.5131, 'shopping', '日本最高摩天大樓'],
+
+    // 自然
+    ['住之江公園', 34.6230, 135.4313, 'nature', '大型公園']
+];
+
+// 建立地圖
+const map = L.map('map').setView(CENTER, DEFAULT_ZOOM);
+
+// OpenStreetMap 圖層
+L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '© OpenStreetMap',
+    maxZoom: 19
+}).addTo(map);
+
+// 加入標記
+locations.forEach(([name, lat, lng, cat, desc]) => {
+    const color = CATEGORIES[cat].color;
+    const marker = L.circleMarker([lat, lng], {
+        radius: 10,
+        color: color,
+        fillColor: color,
+        fillOpacity: 0.8,
+        weight: 2
+    }).addTo(map);
+    
+    marker.bindPopup(`<b>${name}</b><br>${desc}<br><small>📌 ${CATEGORIES[cat].label}</small>`);
+    marker.bindTooltip(name);
+});
+
+// 圖例
+const legend = L.control({position: 'bottomright'});
+legend.onAdd = function(map) {
+    const div = L.DomUtil.create('div', 'legend');
+    div.innerHTML = '<h4>📍 分類</h4>';
+    for (const [key, val] of Object.entries(CATEGORIES)) {
+        div.innerHTML += `<div class="legend-item"><div class="legend-dot" style="background:${val.color}"></div>${val.label}</div>`;
+    }
+    return div;
+};
+legend.addTo(map);
+</script>
+</body>
+</html>
