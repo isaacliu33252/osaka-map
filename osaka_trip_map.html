@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=yes">
+  <title>大阪・京都行程地圖 7/30-8/3</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <style>
+    * { box-sizing: border-box; }
+    body { margin: 0; padding: 0; font-family: "Noto Sans TC", sans-serif; }
+
+    #map { width: 100vw; height: 100vh; }
+
+    .info {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      bottom: 10px;
+      width: 240px;
+      background: white;
+      border-radius: 12px;
+      z-index: 1000;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.22);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .info-header {
+      padding: 10px 12px 6px;
+      border-bottom: 1px solid #eee;
+      flex-shrink: 0;
+    }
+    .info-header h3 { margin: 0; font-size: 14px; color: #1a1a2e; }
+    .info-header .total { color: #e63946; font-weight: bold; font-size: 11px; }
+
+    .info-body {
+      flex: 1;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+      padding: 6px 10px 10px;
+    }
+
+    .day {
+      font-weight: bold;
+      font-size: 11px;
+      color: #e63946;
+      margin-top: 6px;
+      padding-bottom: 2px;
+      border-bottom: 1px solid #ffe5e5;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .city-tag {
+      font-size: 9px;
+      padding: 1px 4px;
+      border-radius: 3px;
+      color: white;
+    }
+    .city-tag.airport { background: #2176ae; }
+    .city-tag.osaka   { background: #e63946; }
+    .city-tag.kyoto   { background: #2d6a4f; }
+    .city-tag.usj     { background: #6c3d91; }
+
+    .item {
+      cursor: pointer;
+      padding: 2px 4px;
+      border-radius: 4px;
+      font-size: 11px;
+      line-height: 1.5;
+      transition: background 0.12s;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 4px;
+    }
+    .item:hover, .item:active { background: #ffe5e5; }
+    .item.active { background: #e63946; color: white; border-radius: 4px; }
+
+    .item .time { color: #888; font-size: 10px; min-width: 38px; text-align: right; flex-shrink: 0; }
+    .item .price { color: #2d6a4f; font-size: 10px; flex-shrink: 0; }
+    .item.active .time, .item.active .price { color: white; }
+
+    .item::before { content: "📍 "; font-size: 9px; }
+    .item.active::before { content: "👉 "; }
+
+    .section {
+      color: #bbb;
+      font-size: 9px;
+      margin-left: 4px;
+      font-style: italic;
+      margin-top: 2px;
+    }
+
+    .divider { border-top: 1px dashed #eee; margin: 3px 0; }
+
+    .toggle-btn {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      background: white;
+      border: none;
+      border-radius: 8px;
+      padding: 6px 10px;
+      font-size: 13px;
+      cursor: pointer;
+      z-index: 1001;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+      display: none;
+    }
+
+    @media (max-width: 600px) {
+      .info {
+        top: auto;
+        right: 0;
+        bottom: 0;
+        left: 0;
+        width: 100%;
+        height: 45vh;
+        border-radius: 16px 16px 0 0;
+        transition: height 0.3s;
+      }
+      .info.collapsed {
+        height: 44px;
+      }
+      .info.collapsed .info-body {
+        display: none;
+      }
+      .toggle-btn {
+        display: block;
+      }
+    }
+  </style>
+</head>
+<body>
+
+<button class="toggle-btn" onclick="togglePanel()">📋 行程</button>
+
+<div id="map"></div>
+
+<div class="info" id="panel">
+  <div class="info-header">
+    <h3>🗾 大阪・京都行程</h3>
+    <div class="total">7/30 - 8/3　¥9,980 + 景點</div>
+  </div>
+  <div class="info-body">
+
+    <div class="day"><span class="city-tag airport">Day 1</span> 7/30 (四) 關西機場</div>
+    <div class="item" onclick="focusMarker(0)"><span>關西國際機場</span><span class="time">15:15</span></div>
+    <div class="item" onclick="focusMarker(1)"><span>新世界・肉劇場</span><span class="time">晚餐</span></div>
+    <div class="item" onclick="focusMarker(1)"><span>新世界・Donki</span><span class="time">購物</span></div>
+
+    <div class="divider"></div>
+    <div class="day"><span class="city-tag osaka">Day 2</span> 7/31 (五) 大阪日</div>
+    <div class="item" onclick="focusMarker(2)"><span>通天閣（滑梯・觀景台・塔樓跳水）</span><span class="time">10:00</span></div>
+    <div class="item" onclick="focusMarker(3)"><span>大阪城・天守閣・小火車・遊船</span><span class="time">13:00</span></div>
+    <div class="item" onclick="focusMarker(4)"><span>天保山（纜車・摩天輪・水族館）</span><span class="time">16:00</span></div>
+    <div class="item" onclick="focusMarker(5)"><span>Wonder Cruise 水上觀光船</span><span class="time">18:00</span></div>
+    <div class="item" onclick="focusMarker(6)"><span>心齋橋</span><span class="time">22:00</span></div>
+
+    <div class="divider"></div>
+    <div class="day"><span class="city-tag kyoto">Day 3</span> 8/1 (六) 京都日</div>
+    <div class="section">🚇 8:00 出發 → 伏見稻荷</div>
+    <div class="item" onclick="focusMarker(7)"><span>伏見稻荷大社</span><span class="time">09:30</span></div>
+    <div class="item" onclick="focusMarker(7)"><span>吉伊卡哇專賣店</span><span class="time"></span></div>
+    <div class="item" onclick="focusMarker(7)"><span>鮭魚拉麵（早餐）</span><span class="time"></span></div>
+    <div class="section">🚇 11:00 → 清水寺</div>
+    <div class="item" onclick="focusMarker(8)"><span>清水寺</span><span class="price">$100</span><span class="time">12:30</span></div>
+    <div class="item" onclick="focusMarker(8)"><span>三年坂・二年坂</span><span class="time">1h</span></div>
+    <div class="section">🚇 八坂神社・祇園</div>
+    <div class="item" onclick="focusMarker(9)"><span>八坂神社</span><span class="time">2h</span></div>
+    <div class="item" onclick="focusMarker(9)"><span>花見小路・鰻魚飯（午餐）</span><span class="time"></span></div>
+    <div class="item" onclick="focusMarker(10)"><span>貓頭鷹樂園</span><span class="price">$200</span></div>
+    <div class="section">🌅 日落：鴨川納涼床</div>
+    <div class="item" onclick="focusMarker(11)"><span>鴨川納涼床</span><span class="time">日落</span></div>
+    <div class="item" onclick="focusMarker(12)"><span>渡月橋（嵐山）</span><span class="time"></span></div>
+    <div class="item" onclick="focusMarker(13)"><span>三千院</span><span class="time"></span></div>
+    <div class="item" onclick="focusMarker(14)"><span>睿山電車 → 貴船神社</span><span class="time"></span></div>
+
+    <div class="divider"></div>
+    <div class="day"><span class="city-tag usj">Day 4</span> 8/2 (日) 環球影城日</div>
+    <div class="item" onclick="focusMarker(15)"><span>日本環球影城 USJ</span><span class="time">全天</span></div>
+
+    <div class="divider"></div>
+    <div class="day"><span class="city-tag airport">Day 5</span> 8/3 (一) 回程</div>
+    <div class="item" onclick="focusMarker(0)"><span>關西國際機場 退房</span><span class="time">08:00</span></div>
+    <div class="item" onclick="focusMarker(0)"><span>✈ 關西 → 台北 11:15-13:10</span><span class="time">11:15</span></div>
+
+  </div>
+</div>
+
+<script>
+function togglePanel() {
+  document.getElementById("panel").classList.toggle("collapsed");
+}
+
+const locations = [
+  { name: "關西國際機場", lat: 34.4347, lng: 135.244, desc: "Day 1　15:15-19:00 抵達", color: "#2176ae" },
+  { name: "新世界（肉劇場・Donki）", lat: 34.6494, lng: 135.5063, desc: "Day 1　晚餐+購物", color: "#e63946" },
+  { name: "通天閣", lat: 34.6494, lng: 135.5063, desc: "Day 2　Tower Slide・觀景台・塔樓跳水 10:00", color: "#f4a261" },
+  { name: "大阪城・天守閣", lat: 34.6873, lng: 135.5262, desc: "Day 2　小火車・遊船・天守閣・庭園 13:00-15:30", color: "#e63946" },
+  { name: "天保山（大阪港）", lat: 34.6550, lng: 135.4300, desc: "Day 2　空中纜車・摩天輪・水族館 16:00-18:00", color: "#2d6a4f" },
+  { name: "天保山觀光船", lat: 34.6548, lng: 135.4283, desc: "Day 2　Wonder Cruise 18:00", color: "#2d6a4f" },
+  { name: "心齋橋", lat: 34.6748, lng: 135.4310, desc: "Day 2　22:00 返程", color: "#6c3d91" },
+  { name: "伏見稻荷大社", lat: 34.9671, lng: 135.7727, desc: "Day 3　09:30　千本鳥居", color: "#e63946" },
+  { name: "清水寺", lat: 34.9949, lng: 135.7850, desc: "Day 3　12:30　門票 $100", color: "#e63946" },
+  { name: "八坂神社・祇園", lat: 35.0036, lng: 135.7785, desc: "Day 3　八坂神社・花見小路・鰻魚飯", color: "#e63946" },
+  { name: "貓頭鷹樂園", lat: 35.0036, lng: 135.7795, desc: "Day 3　門票 $200", color: "#e63946" },
+  { name: "鴨川（納涼床）", lat: 35.0116, lng: 135.7932, desc: "Day 3　日落・納涼床", color: "#2d6a4f" },
+  { name: "渡月橋（嵐山）", lat: 35.0094, lng: 135.6762, desc: "Day 3　嵐山", color: "#2d6a4f" },
+  { name: "三千院", lat: 35.0258, lng: 135.7475, desc: "Day 3　睿山電車沿線", color: "#2d6a4f" },
+  { name: "貴船神社", lat: 35.0622, lng: 135.7269, desc: "Day 3　睿山電車終點", color: "#2d6a4f" },
+  { name: "日本環球影城 USJ", lat: 34.6654, lng: 135.4324, desc: "Day 4　8/2 全天", color: "#6c3d91" }
+];
+
+const map = L.map("map").setView([34.85, 135.55], 11);
+
+L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+  attribution: "© OpenStreetMap contributors",
+  maxZoom: 18
+}).addTo(map);
+
+const dayRoutes = [
+  { coords: [[locations[0].lat, locations[0].lng],[locations[1].lat, locations[1].lng]], color: "#2176ae" },
+  { coords: [[locations[2].lat, locations[2].lng],[locations[3].lat, locations[3].lng],[locations[4].lat, locations[4].lng],[locations[5].lat, locations[5].lng],[locations[6].lat, locations[6].lng]], color: "#e63946" },
+  { coords: [[locations[7].lat, locations[7].lng],[locations[8].lat, locations[8].lng],[locations[9].lat, locations[9].lng],[locations[10].lat, locations[10].lng],[locations[11].lat, locations[11].lng],[locations[12].lat, locations[12].lng],[locations[13].lat, locations[13].lng],[locations[14].lat, locations[14].lng]], color: "#2d6a4f" }
+];
+dayRoutes.forEach(r => L.polyline(r.coords, { color: r.color, weight: 3, dashArray: "6,6", opacity: 0.5 }).addTo(map));
+
+const markers = [];
+locations.forEach((loc, i) => {
+  const marker = L.marker([loc.lat, loc.lng], {
+    icon: L.divIcon({
+      html: `<div style="background:${loc.color};width:26px;height:26px;border-radius:50% 50% 50% 0;border:3px solid white;box-shadow:0 2px 6px rgba(0,0,0,0.3);transform:rotate(-45deg);display:flex;align-items:center;justify-content:center;font-size:11px;color:white;font-weight:bold;">${i+1}</div>`,
+      iconSize: [26, 26],
+      iconAnchor: [13, 26],
+      popupAnchor: [0, -28],
+      className: ""
+    })
+  }).addTo(map);
+  marker.bindPopup(`<b style="font-size:13px">${i+1}. ${loc.name}</b><br><small>${loc.desc}</small>`);
+  markers.push(marker);
+});
+
+function focusMarker(i) {
+  const m = markers[i];
+  map.flyTo(m.getLatLng(), 15, { duration: 1.2 });
+  m.openPopup();
+  document.querySelectorAll(".item").forEach(el => el.classList.remove("active"));
+  document.querySelectorAll(".item")[i > 0 ? i : 0]; // keep simple
+}
+</script>
+</body>
+</html>
